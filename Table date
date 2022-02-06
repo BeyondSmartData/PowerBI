@@ -1,0 +1,27 @@
+let
+CreateDateTable = () as table =>
+let
+StartDate =#date(2017,1,1),
+EndDate = #date(2018,12,31),
+Culture = “dd/mm/yyyy”,
+DayCount = Duration.Days(Duration.From(EndDate – StartDate))+1,
+Source = List.Dates(StartDate,DayCount,#duration(1,0,0,0)),
+TableFromList = Table.FromList(Source, Splitter.SplitByNothing()),
+ChangedType = Table.TransformColumnTypes(TableFromList,{{“Column1”, type date}}),
+RenamedColumns = Table.RenameColumns(ChangedType,{{“Column1”, “JOUR”}}),
+InsertYear = Table.AddColumn(RenamedColumns, “ANNEE”, each Date.Year([JOUR]), Int64.Type),
+InsertQuarter = Table.AddColumn(InsertYear, “TRIMESTRE”, each Date.QuarterOfYear([JOUR]), Int64.Type),
+InsertMonth = Table.AddColumn(InsertQuarter, “MOIS”, each Date.Month([JOUR]), Int64.Type),
+InsertDay = Table.AddColumn(InsertMonth, “JOUR_MOIS”, each Date.Day([JOUR]), Int64.Type),
+InsertDayInt = Table.AddColumn(InsertDay, “JOUR_INT”, each [ANNEE] * 10000 + [MOIS] * 100 + [JOUR_MOIS], Int64.Type),
+InsertMonthName = Table.AddColumn(InsertDayInt, “MOIS_LIBELLE”, each Date.ToText([JOUR], “MMMM”, Culture), type text),
+InsertCalendarMonth = Table.AddColumn(InsertMonthName, “MOIS_CALENDRIER”, each (try(Date.ToText([JOUR], “MMM”, Culture)) otherwise [MOIS_LIBELLE]) & ” ” & Text.End(Number.ToText([ANNEE]),2), type text),
+InsertCalendarQtr = Table.AddColumn(InsertCalendarMonth, “TRIMESTRE_CALENDRIER”, each “T” & Number.ToText([TRIMESTRE]) & ” ” & Number.ToText([ANNEE]), type text),
+InsertDayWeek = Table.AddColumn(InsertCalendarQtr, “JOUR_SEMAINE”, each Date.DayOfWeek([JOUR], Day.Monday)+1, Int64.Type),
+InsertDayName = Table.AddColumn(InsertDayWeek, “JOUR_LIBELLE”, each Date.ToText([JOUR], “dddd”, Culture), type text),
+InsertWeekEnding = Table.AddColumn(InsertDayName, “JOUR_FIN_SEMAINE”, each Date.EndOfWeek([JOUR]), type date),
+InsertMonthOrder = Table.AddColumn(InsertWeekEnding , “ORDRE_MOIS”, each [ANNEE]*100+[MOIS], Int64.Type)
+in
+InsertMonthOrder
+in
+CreateDateTable
