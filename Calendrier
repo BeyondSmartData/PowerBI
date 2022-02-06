@@ -1,0 +1,27 @@
+let
+    StartDate = #date(StartYear,1,1),
+    EndDate = #date(EndYear,12,31),
+    NumberOfDays = Duration.Days( EndDate - StartDate ),
+    Dates = List.Dates(StartDate, NumberOfDays+1, #duration(1,0,0,0)),
+    #"Converti en table" = Table.FromList(Dates, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Colonnes renommées" = Table.RenameColumns(#"Converti en table",{{"Column1", "FullDateAlternateKey"}}),
+    #"Type modifié" = Table.TransformColumnTypes(#"Colonnes renommées",{{"FullDateAlternateKey", type date}}),
+    #"Année insérée" = Table.AddColumn(#"Type modifié", "Année", each Date.Year([FullDateAlternateKey]), Int64.Type),
+    #"Mois inséré" = Table.AddColumn(#"Année insérée", "Mois", each Date.Month([FullDateAlternateKey]), Int64.Type),
+    #"Nom du mois inséré" = Table.AddColumn(#"Mois inséré", "Nom du mois", each Date.MonthName([FullDateAlternateKey]), type text),
+    #"Trimestre inséré" = Table.AddColumn(#"Nom du mois inséré", "Trimestre", each Date.QuarterOfYear([FullDateAlternateKey]), Int64.Type),
+    #"Semaine de l'année insérée" = Table.AddColumn(#"Trimestre inséré", "Semaine de l'année", each Date.WeekOfYear([FullDateAlternateKey]), Int64.Type),
+    #"Semaine du mois insérée" = Table.AddColumn(#"Semaine de l'année insérée", "Semaine du mois", each Date.WeekOfMonth([FullDateAlternateKey]), Int64.Type),
+    #"Jour inséré" = Table.AddColumn(#"Semaine du mois insérée", "Jour", each Date.Day([FullDateAlternateKey]), Int64.Type),
+    #"Jour de l'année inséré" = Table.AddColumn(#"Jour inséré", "Jour de l'année", each Date.DayOfYear([FullDateAlternateKey]), Int64.Type),
+    #"Nom du jour inséré" = Table.AddColumn(#"Jour de l'année inséré", "Nom du jour", each Date.DayOfWeekName([FullDateAlternateKey]), type text),
+    #"Préfixe inséré" = Table.AddColumn(#"Nom du jour inséré", "Préfixe", each "T" & Text.From([Trimestre], "fr-CA"), type text),
+    #"Colonnes renommées1" = Table.RenameColumns(#"Préfixe inséré",{{"Préfixe", "Nom Trimstre"}}),
+    #"Colonne conditionnelle ajoutée" = Table.AddColumn(#"Colonnes renommées1", "Personnalisé", each if [Nom du jour] = "dimanche" then 7 else if [Nom du jour] = "lundi" then 1 else if [Nom du jour] = "mardi" then 2 else if [Nom du jour] = "mercredi" then 3 else if [Nom du jour] = "jeudi" then 4 else if [Nom du jour] = "vendredi" then 5 else if [Nom du jour] = "samedi" then 6 else null, type number),
+    #"Colonnes renommées2" = Table.RenameColumns(#"Colonne conditionnelle ajoutée",{{"Personnalisé", "Num jour"}}),
+    #"Colonne conditionnelle ajoutée1" = Table.AddColumn(#"Colonnes renommées2", "Personnalisé", each if [Nom du jour] = "dimanche" then "07 - Dimanche" else if [Nom du jour] = "lundi" then "01 - Lundi" else if [Nom du jour] = "mardi" then "02 - Mardi" else if [Nom du jour] = "mercredi" then "03 - Mercredi" else if [Nom du jour] = "jeudi" then "04 - Jeudi" else if [Nom du jour] = "vendredi" then "05 - Vendredi" else if [Nom du jour] = "samedi" then "06 - Samedi" else null, type text),
+    #"Colonnes renommées3" = Table.RenameColumns(#"Colonne conditionnelle ajoutée1",{{"Personnalisé", "Tri Jour"}}),
+    #"Lignes triées" = Table.Sort(#"Colonnes renommées3",{{"FullDateAlternateKey", Order.Ascending}}),
+    #"Personnalisée ajoutée" = Table.AddColumn(#"Lignes triées", "Date debut semaine", each Date.StartOfWeek([FullDateAlternateKey]))
+in
+    #"Personnalisée ajoutée"
